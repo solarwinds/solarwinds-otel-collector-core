@@ -19,9 +19,10 @@ if [ "$#" -ne 1 ]; then
 fi
 
 VERSION=$1
+SRC_ROOT=$(pwd)
 
 # Update CHANGELOG.md
-CHANGELOG_FILE="./CHANGELOG.md"
+CHANGELOG_FILE="$SRC_ROOT/CHANGELOG.md"
 if [ ! -f "$CHANGELOG_FILE" ]; then
     echo "CHANGELOG.md not found!"
     exit 1
@@ -34,14 +35,25 @@ else
 fi
 
 # Update go.mod files
-ALL_GO_MOD=$(find . -name "go.mod" -type f | sort)
+REMOTE_URL=$(git config --get remote.origin.url)
+
+if [[ $REMOTE_URL == git@* ]]; then
+  ORG_REPO=$(echo $REMOTE_URL | perl -pe 's|git@[^:]+:([^/]+)/(.+)\.git|\1/\2|')
+elif [[ $REMOTE_URL == https://* ]]; then
+  ORG_REPO=$(echo $REMOTE_URL | perl -pe 's|https://[^/]+/([^/]+)/(.+)\.git|\1/\2|')
+else
+  echo "Unsupported repository URL format"
+  exit 1
+fi
+
+ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
 for f in $ALL_GO_MOD; do
-    perl -pi -e "s|^(\s+github.com/solarwinds/solarwinds-otel-collector-contrib/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
-    echo "References to 'github.com/solarwinds/solarwinds-otel-collector-contrib' in $f updated with version v$VERSION"
+    perl -pi -e "s|^(\s+github.com/$ORG_REPO/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
+    echo "References to 'github.com/$ORG_REPO' in ${f#$(pwd)/} updated with version v$VERSION"
 done
 
 # update pkg\version\version.go to set the actual release version
-GO_VERSION_FILE="./pkg/version/version.go"
+GO_VERSION_FILE="$SRC_ROOT/pkg/version/version.go"
 if [ ! -f "$GO_VERSION_FILE" ]; then
     echo "version.go not found!"
     exit 1

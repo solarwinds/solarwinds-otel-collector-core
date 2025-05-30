@@ -15,7 +15,7 @@
  
 EXPECTED_GO_LICENSE_HEADER=$1
 EXPECTED_SHELL_LICENSE_HEADER=$2
-ALL_SRC=$(find . \( -name "*.go" -o -name "*.sh" \) \
+ALL_SRC=$(find $(pwd) \( -name "*.go" -o -name "*.sh" \) \
 			     -not -path '*generated*' \
 			     -type f | sort)
 
@@ -25,16 +25,16 @@ for f in $ALL_SRC; do
         *.go)
             if ! diff -q <(head -n 13 "$f") $EXPECTED_GO_LICENSE_HEADER > /dev/null; then
                 echo "Missing or incorrect license headers in Go source files!"
-                echo "Diff for $f:";
-                diff --label="$f" -u <(head -n 13 "$f") $EXPECTED_GO_LICENSE_HEADER;
+                echo "Diff for ${f#$(pwd)/}:";
+                diff --label="${f#$(pwd)/}" -u <(head -n 13 "$f") $EXPECTED_GO_LICENSE_HEADER;
                 RC=1
             fi;
         ;;
         *.sh)
             if ! diff -q <(tail -n +2 "$f" | head -n 13) $EXPECTED_SHELL_LICENSE_HEADER > /dev/null; then
                 echo "Missing or incorrect license headers in shell source files!"
-                echo "Diff for $f:";
-                diff --label="$f" -u <(tail -n +2 "$f" | head -n 13) $EXPECTED_SHELL_LICENSE_HEADER;
+                echo "Diff for ${f#$(pwd)/}:";
+                diff --label="${f#$(pwd)/}" -u <(tail -n +2 "$f" | head -n 13) $EXPECTED_SHELL_LICENSE_HEADER;
                 RC=1
             fi;
         ;;

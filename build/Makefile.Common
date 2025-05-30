@@ -4,11 +4,9 @@ GOCMD?= go
 
 # SRC_ROOT is the top of the source tree
 SRC_ROOT := $(shell git rev-parse --show-toplevel)
-BUILD_DIR := $(SRC_ROOT)/build
-SCRIPT_DIR := $(BUILD_DIR)/scripts
 
-EXPECTED_GO_LICENSE_HEADER    := $(SRC_ROOT)/expected-go-file-header.txt
-EXPECTED_SHELL_LICENSE_HEADER    := $(SRC_ROOT)/expected-shell-file-header.txt
+BUILD_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+SCRIPT_DIR := $(BUILD_DIR)/scripts
 
 TOOLS_MOD_DIR   := $(SRC_ROOT)/internal/tools
 TOOLS_BIN_DIR   := $(SRC_ROOT)/.tools

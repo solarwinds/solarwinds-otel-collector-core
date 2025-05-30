@@ -25,27 +25,29 @@ for modfile in $GO_MOD_FILES; do
     count=$(find . -name '*_test.go' | wc -l)
     if [[ "$count" -eq 0 ]]; then
 
-    # Build needs to be excluded for tools module.
-    if [[ "$modfile" == */tools/go.mod ]]; then
-    echo "Skipping build for tools module"
-    cd "$ORIG_DIR"
-    continue
-    fi
+      # Build needs to be excluded for tools module.
+      if [[ "$modfile" == */tools/go.mod ]]; then
+        echo "Skipping build for tools module"
+        cd "$ORIG_DIR"
+        continue
+      fi
 
-    echo "Processing build for module $modfile"
-    go build .
-    if [[ $? != 0 ]]; then
-    echo "Build failed for module $modfile"
-    HAS_FAILURE=true
-    fi
-    else
-    echo "Processing tests for module $modfile"
-    go test -v ./...
-    if [[ $? != 0 ]]; then
-        echo "Test suite failed for module $modfile"
+      echo "Processing build for module $modfile"
+      go build .
+
+      if [[ $? != 0 ]]; then
+        echo "Build failed for module $modfile"
         HAS_FAILURE=true
-    fi
-    fi
+      fi
+      else
+        echo "Processing tests for module $modfile"
+        go test -v ./...
+
+        if [[ $? != 0 ]]; then
+          echo "Test suite failed for module $modfile"
+          HAS_FAILURE=true
+        fi
+      fi
 
     cd "$ORIG_DIR"
 done

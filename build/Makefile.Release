@@ -1,14 +1,12 @@
-.PHONY: get-last-tag
-get-last-tag:
-	PREVIOUS_TAG=$(git tag --sort=version:refname | grep -P "^v\d+\.\d+\.\d+$" | tail -n 1)
-	@echo "Previous tag: $PREVIOUS_TAG"
-	@echo $(PREVIOUS_TAG)
+.PHONY: get-previous-tag
+get-previous-tag:
+	@git tag --sort=version:refname | grep -P '^v\d+\.\d+\.\d+$$' | tail -n 1
 
-.PHONY: validate-tag-uniqueness
+.PHONY: validate-release-uniqueness
 validate-release-uniqueness:
-	if ! gh release view "v$(tag)}" 2>&1 | grep -q "^release not found$"; then
-		echo "Release v$(tag) already exists on GitHub."
-		exit 1
+	if ! gh release view "$(tag)" 2>&1 | grep -q "^release not found$$"; then \
+		echo "Release $(tag) already exists on GitHub."; \
+		exit 1; \
 	fi
 
 .PHONY: prepare-release
@@ -24,4 +22,4 @@ create-github-release:
 
 .PHONY: tag-github-packages
 tag-github-packages:
-	@$(SCRIPT_DIR)/tag-release-packages.sh $(folders) $(version) $(excluded_folders)
+	@$(SCRIPT_DIR)/tag-release-packages.sh "$(folders)" "$(version)" "$(excluded_folders)"

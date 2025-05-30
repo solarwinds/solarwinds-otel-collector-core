@@ -20,26 +20,27 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
     $testFiles = Get-ChildItem -Recurse -Filter '*_test.go'
     if ($testFiles.Count -eq 0) {
 
-    # Build needs to be excluded for tools module.
-    if ($_.FullName -like '*\tools\go.mod') {
-        Write-Host "Skipping build for tools module"
-        Pop-Location
-        return
-    }
+        # Build needs to be excluded for tools module.
+        if ($_.FullName -like '*\tools\go.mod') {
+            Write-Host "Skipping build for tools module"
+            Pop-Location
+            return
+        }
 
-    Write-Host "Processing build for module $($_.FullName)"
-    go build .
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Build failed for module $modfile"
-        $hasFailure = $true
-    }
+        Write-Host "Processing build for module $($_.FullName)"
+        go build .
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Build failed for module $modfile"
+            $hasFailure = $true
+        }
     } else {
-    Write-Host "Processing tests for module $($_.FullName)"
-    go test -v ./...
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Test suite failed for module $modfile"
-        $hasFailure = $true
-    }
+        Write-Host "Processing tests for module $($_.FullName)"
+        go test -v ./...
+
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Test suite failed for module $modfile"
+            $hasFailure = $true
+        }
     }
 
     Pop-Location
