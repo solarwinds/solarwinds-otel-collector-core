@@ -1,7 +1,7 @@
 ADDLICENSE   := $(TOOLS_BIN_DIR)/addlicense
 ALL_SRC := $(shell find . \( -name "*.go" \) \
-							-not -path '*generated*' \
-							-type f | sort)
+	-not -path '*generated*' \
+	-type f | sort)
 
 .PHONY: ci-check-licenses
 ci-check-licenses: add-licenses check-licenses
