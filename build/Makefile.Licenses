@@ -1,3 +1,4 @@
+ADDLICENSE   := $(TOOLS_BIN_DIR)/addlicense
 ALL_SRC := $(shell find . \( -name "*.go" \) \
 							-not -path '*generated*' \
 							-type f | sort)
