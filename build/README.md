@@ -21,10 +21,12 @@ include submodules/solarwinds-otel-collector-core/build/Makefile.Release    # Op
 These steps make sure the tasks contained within included Makefile modules will be available when running `make` command in the project.
 
 ## How to develop
-When adding new Makefile functionality:
+When **adding new** Makefile functionality:
 - consider into which file the extension should be done based on the functionality it is extending
 - when no file is not suitable, create new one - ideally to reflect as general area as possible to allow further extensions
 - extend [Contents](#contents) section with brief description of the module
 
 > [!NOTE]  
 > When adding new bash script file, don't forget to add execute permission `chmod +x {script name}`
+
+When **updating existing** Makefile functionality, most importantly **make sure you aren't introducing breaking change** for consumers.
