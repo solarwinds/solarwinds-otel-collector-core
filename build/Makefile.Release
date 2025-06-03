@@ -11,7 +11,7 @@ validate-release-uniqueness:
 
 .PHONY: prepare-release
 prepare-release:
-	@$(SCRIPT_DIR)/prepare-release.sh $(version)
+	@$(SCRIPT_DIR)/prepare-release.sh $(version) ${SELF_REFERENCE_PACKAGES_SOURCE}
 
 .PHONY: create-github-release
 create-github-release:

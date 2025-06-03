@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <version>"
+if [ "$#" -lt 1 ]; then
+    echo "Usage: $0 <version> <go.mod package source to update> (optional)"
     exit 1
 fi
 
 VERSION=$1
+PACKAGE_SOURCE_TO_UPDATE=$2
 SRC_ROOT=$(pwd)
 
 # Update CHANGELOG.md
@@ -34,16 +35,14 @@ else
     echo "CHANGELOG.md already contains 'v$VERSION', no update made."
 fi
 
-# Update go.mod files
-REMOTE_URL=$(git config --get remote.origin.url)
-ORG_REPO=$(perl -nle 'print "$1/$2" if m{(?:git@|https://|git://|ssh://)?(?:[^:/]+[:/])?([^/]+)/([^/]+)\.git}' <<< "$REMOTE_URL")
-
-
-ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
-for f in $ALL_GO_MOD; do
-    perl -pi -e "s|^(\s+github.com/$ORG_REPO/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
-    echo "References to 'github.com/$ORG_REPO' in ${f#$(pwd)/} updated with version v$VERSION"
-done
+if [ $PACKAGE_SOURCE_TO_UPDATE ]; then
+  # Update go.mod files
+  ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
+  for f in $ALL_GO_MOD; do
+      perl -pi -e "s|^(\s+$PACKAGE_SOURCE_TO_UPDATE/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
+      echo "References to '$PACKAGE_SOURCE_TO_UPDATE' in ${f#$(pwd)/} updated with version v$VERSION"
+  done
+fi
 
 # update pkg\version\version.go to set the actual release version
 GO_VERSION_FILE="$SRC_ROOT/pkg/version/version.go"
