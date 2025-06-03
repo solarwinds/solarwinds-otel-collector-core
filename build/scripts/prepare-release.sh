@@ -36,7 +36,8 @@ fi
 
 # Update go.mod files
 REMOTE_URL=$(git config --get remote.origin.url)
-ORG_REPO=$(perl -nle 'print "$1/$2" if m{(?:git@|https://|git://|ssh://)?(?:[^/]+/)?([^/]+)/([^/]+)\.git}' <<< "$REMOTE_URL")
+ORG_REPO=$(perl -nle 'print "$1/$2" if m{(?:git@|https://|git://|ssh://)?(?:[^:/]+[:/])?([^/]+)/([^/]+)\.git}' <<< "$REMOTE_URL")
+
 
 ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
 for f in $ALL_GO_MOD; do
