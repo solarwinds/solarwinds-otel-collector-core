@@ -14,13 +14,18 @@
 # limitations under the License.
 
 if [ "$#" -lt 1 ]; then
-    echo "Usage: $0 <version> <go.mod package source to update> (optional)"
+    echo "Usage: $0 <version> <go.mod package sources to update (comma-separated)> (optional)"
     exit 1
 fi
-
 VERSION=$1
-PACKAGE_SOURCE_TO_UPDATE=$2
+IFS=',' read -ra PACKAGE_SOURCES_TO_UPDATE <<< "$2"
 SRC_ROOT=$(pwd)
+
+PACKAGE_SOURCES_TO_UPDATE+=(
+    "github.com/solarwinds/solarwinds-otel-collector-core"
+    "github.com/solarwinds/solarwinds-otel-collector-contrib"
+    "github.com/solarwinds/solarwinds-otel-collector-releases"
+)
 
 # Update CHANGELOG.md
 CHANGELOG_FILE="$SRC_ROOT/CHANGELOG.md"
@@ -35,13 +40,15 @@ else
     echo "CHANGELOG.md already contains 'v$VERSION', no update made."
 fi
 
-if [ $PACKAGE_SOURCE_TO_UPDATE ]; then
-  # Update go.mod files
-  ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
-  for f in $ALL_GO_MOD; do
-      perl -pi -e "s|^(\s+$PACKAGE_SOURCE_TO_UPDATE/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
-      echo "References to '$PACKAGE_SOURCE_TO_UPDATE' in ${f#$(pwd)/} updated with version v$VERSION"
-  done
+if [ $PACKAGE_SOURCES_TO_UPDATE ]; then
+    # Update go.mod files
+    ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
+    for f in $ALL_GO_MOD; do
+        for package_source in "${PACKAGE_SOURCES_TO_UPDATE[@]}"; do
+            perl -pi -e "s|^(\s+$package_source/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
+            echo "References to '$package_source' in ${f#$(pwd)/} updated with version v$VERSION"
+        done
+    done
 fi
 
 # update pkg\version\version.go to set the actual release version
