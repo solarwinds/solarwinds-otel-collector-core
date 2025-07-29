@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    labels:
+      - dependencies
+      - actions
+      - Skip Changelog
+    schedule:
+      interval: weekly
+      day: saturday
+    commit-message:
+      prefix: "chore: "
+
+  - package-ecosystem: gomod
+    directories:
+      - "/internal/*/"
+    schedule:
+      interval: weekly
+      day: sunday
+      time: "03:30"
+    allow:
+      - dependency-type: "direct"
+    groups:
+      components-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+    commit-message:
+      prefix: "chore: "
