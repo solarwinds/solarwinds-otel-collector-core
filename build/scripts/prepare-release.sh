@@ -41,20 +41,37 @@ else
 fi
 
 if [ $PACKAGE_SOURCES_TO_UPDATE ]; then
-    # Update go.mod files
     ALL_GO_MOD=$(find $SRC_ROOT -name "go.mod" -type f | sort)
+
+    # First pass: check Go version consistency
+    UNIQUE_GO_VERSION=""
+    for f in $ALL_GO_MOD; do
+        ver=$(grep '^go [0-9]\+\.[0-9]\+' "$f" | awk '{print $2}')
+        if [ -n "$ver" ]; then
+            if [ -z "$UNIQUE_GO_VERSION" ]; then
+                UNIQUE_GO_VERSION="$ver"
+            elif [ "$ver" != "$UNIQUE_GO_VERSION" ]; then
+                echo -e "\033[0;31m❌ Error: Multiple Go versions found! '$UNIQUE_GO_VERSION' and '$ver' (in $f)\033[0m"
+                exit 1
+            fi
+        fi
+    done
+
+    # Second pass: update package sources and run go mod tidy
     for f in $ALL_GO_MOD; do
         for package_source in "${PACKAGE_SOURCES_TO_UPDATE[@]}"; do
             perl -pi -e "s|^(\s+$package_source/[^ ]*) v[0-9]+\.[0-9]+\.[0-9]+(\s+// indirect)?$|\1 v$VERSION\2|" "$f"
             echo "References to '$package_source' in ${f#$(pwd)/} updated with version v$VERSION"
         done
+        (cd "$(dirname "$f")" && go mod tidy)
     done
 fi
+
 
 # update pkg\version\version.go to set the actual release version
 GO_VERSION_FILE="$SRC_ROOT/pkg/version/version.go"
 if [ ! -f "$GO_VERSION_FILE" ]; then
-    echo "version.go not found!"
+    echo -e "\033[0;31m❌ version.go not found!\033[0m"
     exit 1
 fi
 perl -pi -e "s|^(const Version =) \"[0-9]+\.[0-9]+\.[0-9]+\"$|\1 \"$VERSION\"|" "$GO_VERSION_FILE"
