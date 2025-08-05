@@ -23,3 +23,55 @@ create-github-release:
 .PHONY: tag-github-packages
 tag-github-packages:
 	@$(SCRIPT_DIR)/tag-release-packages.sh "$(folders)" "$(tag)" "$(excluded_folders)"
+
+.PHONY: ci-vulncheck-binaries
+ci-vulncheck-binaries: install-all-go-packages
+ci-vulncheck-binaries: 
+	$(MAKE) govulncheck-binaries workspace_path=$(workspace_path)
+
+.PHONY: ci-vulncheck-modules
+ci-vulncheck-modules: install-all-go-packages
+ci-vulncheck-modules:
+	$(MAKE) govulncheck-modules
+
+.PHONY: ci-vulncheck-nightly-binaries
+ci-vulncheck-nightly-binaries: install-all-go-packages
+ci-vulncheck-nightly-binaries: EXIT_CODE=$(shell mkdir -p tmp && bash $(SCRIPT_DIR)/govulncheck-binaries.sh ${workspace_path} > ./tmp/report.txt 2>&1; echo $$?)
+ci-vulncheck-nightly-binaries: 
+	# EXIT_CODE has to be separated like this, or it's value does not get passed to this command.
+	bash $(SCRIPT_DIR)/send_vulncheck_report.sh tmp/report.txt "OTEL Collector Vulnerabilities" "$(EXIT_CODE)"
+
+.PHONY: ci-vulncheck-nightly-modules
+ci-vulncheck-nightly-modules: install-all-go-packages
+ci-vulncheck-nightly-modules: EXIT_CODE=$(shell mkdir -p tmp && bash $(SCRIPT_DIR)/govulncheck-modules.sh > ./tmp/report.txt 2>&1; echo $$?)
+ci-vulncheck-nightly-modules: 
+	# EXIT_CODE has to be separated like this, or it's value does not get passed to this command.
+	bash $(SCRIPT_DIR)/send_vulncheck_report.sh tmp/report.txt "OTEL Collector Vulnerabilities" "$(EXIT_CODE)"
+
+.PHONY: govulncheck-modules
+govulncheck-modules:
+	$(call print-target)
+	@echo "Checking modules for vulnerabilities"
+	@$(SCRIPT_DIR)/govulncheck-modules.sh
+
+.PHONY: govulncheck-binaries
+govulncheck-binaries:
+	$(call print-target)
+	@echo "Checking binaries for vulnerabilities"
+	@$(SCRIPT_DIR)/govulncheck-binaries.sh "${workspace_path}"
+
+.PHONY: install-all-go-packages
+install-all-go-packages:
+	$(call print-target)
+install-all-go-packages: install-goversioninfo
+install-all-go-packages: install-vulncheck
+
+.PHONY: install-vulncheck
+install-vulncheck:
+	$(call print-target)
+	go install golang.org/x/vuln/cmd/govulncheck@$(govulncheck-version)
+
+.PHONY: install-goversioninfo
+install-goversioninfo:
+	$(call print-target)
+	cd ~ && GO111MODULE=on go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$(goversioninfo-version) && cd - >/dev/null
