@@ -72,6 +72,6 @@ install-vulncheck:
 	go install golang.org/x/vuln/cmd/govulncheck@$(govulncheck-version)
 
 .PHONY: install-goversioninfo
-install-goversioninfo: ## Run to install
+install-goversioninfo:
 	$(call print-target)
 	cd ~ && GO111MODULE=on go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$(goversioninfo-version) && cd - >/dev/null
