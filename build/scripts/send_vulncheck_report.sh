@@ -57,6 +57,12 @@ if [ -z "$REPORT_FILE" ]; then
   exit 1
 fi
 
+
+if [ -z "$TITLE" ]; then
+  echo "Error: Missing TITLE parameter!"
+  exit 1
+fi
+
 # Check if the report file сontains vulnerabilities keyword
 if grep -q -i "vulnerability" "$REPORT_FILE"; then
   ICON=":red_circle:"
