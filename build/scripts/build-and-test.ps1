@@ -52,7 +52,7 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
         go test -v -coverprofile="$coverageFile" -covermode=atomic ./...
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Test suite failed for module $($_.FullName)
+            Write-Host "Test suite failed for module $($_.FullName)"
             $hasFailure = $true
         }
     }
