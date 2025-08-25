@@ -19,6 +19,16 @@ HAS_FAILURE=false
 ORIG_DIR=$(pwd)
 GO_MOD_FILES=$(find . -name go.mod)
 
+OS=$(uname -s)
+case "$OS" in
+    Linux*)     PLATFORM="linux";;
+    Darwin*)    PLATFORM="darwin";;
+    *)          PLATFORM="unknown";;
+esac
+
+COVERAGE_DIR="$ORIG_DIR/coverage/$PLATFORM"
+mkdir -p "$COVERAGE_DIR"
+
 for modfile in $GO_MOD_FILES; do
     cd $(dirname "$modfile")
 
@@ -41,7 +51,9 @@ for modfile in $GO_MOD_FILES; do
       fi
       else
         echo "Processing tests for module $modfile"
-        go test -v ./...
+        MODULE_PATH=$(dirname "$modfile")
+        MODULE_NAME=$(echo "$MODULE_PATH" | sed 's/[\/\.]/_/g')
+        go test -v -coverprofile="${COVERAGE_DIR}/${MODULE_NAME}.out" -covermode=atomic ./...
 
         if [[ $? != 0 ]]; then
           echo "Test suite failed for module $modfile"
@@ -51,6 +63,50 @@ for modfile in $GO_MOD_FILES; do
 
     cd "$ORIG_DIR"
 done
+
+# Merge coverage profiles per OS for Codecov
+echo "Starting coverage files merge process..."
+# Find coverage files but exclude the final output file
+COVERAGE_FILES=$(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" 2>/dev/null)
+
+if [[ -n "$COVERAGE_FILES" ]]; then
+    # Remove any existing merged coverage file first
+    rm -f "$COVERAGE_DIR/coverage.out"
+
+    echo "mode: atomic" > "$COVERAGE_DIR/coverage.out"
+
+    while IFS= read -r -d '' coverage_file; do
+        echo "Processing coverage file: $coverage_file"
+        if [[ -f "$coverage_file" && -s "$coverage_file" ]]; then
+            if head -n 1 "$coverage_file" | grep -q "^mode:"; then
+                tail -n +2 "$coverage_file" >> "$COVERAGE_DIR/coverage.out"
+                echo "Successfully merged: $coverage_file"
+            else
+                echo "Warning: Skipping malformed coverage file: $coverage_file"
+            fi
+        else
+            echo "Warning: Skipping empty or missing coverage file: $coverage_file"
+        fi
+    done < <(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" -print0 2>/dev/null)
+
+    echo "Merged coverage output created at $COVERAGE_DIR/coverage.out"
+
+    # Verify the merged file
+    if [[ -f "$COVERAGE_DIR/coverage.out" && -s "$COVERAGE_DIR/coverage.out" ]]; then
+        # Clean up individual coverage files after successful merge
+        while IFS= read -r -d '' coverage_file; do
+            if [[ "$coverage_file" != "$COVERAGE_DIR/coverage.out" ]]; then
+                rm -f "$coverage_file"
+            fi
+        done < <(find "$COVERAGE_DIR" -name "*.out" -type f -print0 2>/dev/null)
+        echo "Cleanup completed - only coverage.out remains"
+    else
+        echo "Error: Merged coverage file is empty or missing"
+        exit 1
+    fi
+else
+    echo "No coverage files found in $COVERAGE_DIR"
+fi
 
 if [ "$HAS_FAILURE" = true ]; then
     echo "Some tests failed"
