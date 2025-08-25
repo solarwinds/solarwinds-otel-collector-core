@@ -13,6 +13,13 @@
 # limitations under the License.
 
 $hasFailure = $false
+$origDir = Get-Location
+$platform = "windows"
+$coverageDir = Join-Path $origDir "coverage" $platform
+
+if (!(Test-Path $coverageDir)) {
+    New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
+}
 
 Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
     Push-Location $_.Directory
@@ -35,7 +42,14 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
         }
     } else {
         Write-Host "Processing tests for module $($_.FullName)"
-        go test -v ./...
+
+        # Generate module name for coverage file
+        $modulePath = Split-Path $_.FullName -Parent
+        $relativePath = Resolve-Path -Relative $modulePath
+        $moduleName = $relativePath -replace '[/\\.]', '_'
+        $coverageFile = Join-Path $coverageDir "$moduleName.out"
+
+        go test -v -coverprofile="$coverageFile" -covermode=atomic ./...
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Test suite failed for module $modfile"
@@ -44,6 +58,54 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
     }
 
     Pop-Location
+}
+
+# Merge coverage profiles for Codecov
+Write-Host "Starting coverage files merge process..."
+
+# Find coverage files but exclude the final output file
+$coverageFiles = Get-ChildItem -Path $coverageDir -Filter "*.out" -File | Where-Object { $_.Name -ne "coverage.out" }
+
+if ($coverageFiles.Count -gt 0) {
+    # Remove any existing merged coverage file first
+    $mergedCoverageFile = Join-Path $coverageDir "coverage.out"
+    if (Test-Path $mergedCoverageFile) {
+        Remove-Item $mergedCoverageFile -Force
+    }
+
+    "mode: atomic" | Out-File -FilePath $mergedCoverageFile -Encoding UTF8
+
+    foreach ($coverageFile in $coverageFiles) {
+        Write-Host "Processing coverage file: $($coverageFile.FullName)"
+
+        if ((Test-Path $coverageFile.FullName) -and (Get-Item $coverageFile.FullName).Length -gt 0) {
+            $content = Get-Content $coverageFile.FullName
+            if ($content -and $content[0] -match "^mode:") {
+                $content | Select-Object -Skip 1 | Out-File -FilePath $mergedCoverageFile -Append -Encoding UTF8
+                Write-Host "Successfully merged: $($coverageFile.FullName)"
+            } else {
+                Write-Host "Warning: Skipping malformed coverage file: $($coverageFile.FullName)"
+            }
+        } else {
+            Write-Host "Warning: Skipping empty or missing coverage file: $($coverageFile.FullName)"
+        }
+    }
+
+    Write-Host "Merged coverage output created at $mergedCoverageFile"
+
+    # Verify the merged file
+    if ((Test-Path $mergedCoverageFile) -and (Get-Item $mergedCoverageFile).Length -gt 0) {
+        # Clean up individual coverage files after successful merge
+        foreach ($coverageFile in $coverageFiles) {
+            Remove-Item $coverageFile.FullName -Force
+        }
+        Write-Host "Cleanup completed - only coverage.out remains"
+    } else {
+        Write-Host "Error: Merged coverage file is empty or missing"
+        exit 1
+    }
+} else {
+    Write-Host "No coverage files found in $coverageDir"
 }
 
 if ($hasFailure) {
