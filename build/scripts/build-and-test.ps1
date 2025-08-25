@@ -15,7 +15,7 @@
 $hasFailure = $false
 $origDir = Get-Location
 $platform = "windows"
-$coverageDir = Join-Path $origDir "coverage" $platform
+$coverageDir = Join-Path (Join-Path $origDir "coverage") $platform
 
 if (!(Test-Path $coverageDir)) {
     New-Item -ItemType Directory -Path $coverageDir -Force | Out-Null
