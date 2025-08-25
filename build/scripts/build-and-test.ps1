@@ -37,7 +37,7 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
         Write-Host "Processing build for module $($_.FullName)"
         go build .
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Build failed for module $modfile"
+            Write-Host "Build failed for module $($_.FullName)"
             $hasFailure = $true
         }
     } else {
@@ -52,7 +52,7 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
         go test -v -coverprofile="$coverageFile" -covermode=atomic ./...
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Test suite failed for module $modfile"
+            Write-Host "Test suite failed for module $($_.FullName)
             $hasFailure = $true
         }
     }
