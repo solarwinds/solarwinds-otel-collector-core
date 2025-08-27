@@ -66,33 +66,59 @@ Write-Host "Starting coverage files merge process..."
 # Find all coverage files except the final output file
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter "*.out" -File | Where-Object { $_.Name -ne "coverage.out" }
 
-if ($coverageFiles.Count -gt 0) {
-    $mergedCoverageFile = Join-Path $coverageDir "coverage.out"
-    "mode: atomic" | Out-File -FilePath $mergedCoverageFile -Encoding UTF8
+if ($coverageFiles.Count -eq 0) {
+    Write-Host "No coverage files found in $coverageDir"
+    return
+}
 
+$mergedCoverageFile = Join-Path $coverageDir "coverage.out"
+$tempMergedFile = "$mergedCoverageFile.tmp"
+
+try {
+    "mode: atomic" | Out-File -FilePath $tempMergedFile -Encoding UTF8 -NoNewline
+    "`n" | Out-File -FilePath $tempMergedFile -Append -Encoding UTF8 -NoNewline
+
+    $mergedCount = 0
     foreach ($coverageFile in $coverageFiles) {
-        if ((Test-Path $coverageFile.FullName) -and (Get-Item $coverageFile.FullName).Length -gt 0) {
-            $content = Get-Content $coverageFile.FullName
-            if ($content -and $content[0] -match "^mode:") {
-                $content | Select-Object -Skip 1 | Out-File -FilePath $mergedCoverageFile -Append -Encoding UTF8
-                Write-Host "Merged: $($coverageFile.Name)"
-            } else {
+        if (!(Test-Path $coverageFile.FullName) -or (Get-Item $coverageFile.FullName).Length -eq 0) {
+            Write-Host "Warning: Skipping empty or missing file: $($coverageFile.Name)"
+            continue
+        }
+
+        try {
+            $lines = Get-Content $coverageFile.FullName -Encoding UTF8
+            if ($lines.Count -eq 0 -or $lines[0] -notmatch "^mode:") {
                 Write-Host "Warning: Skipping malformed coverage file: $($coverageFile.Name)"
+                continue
             }
+
+            $lines | Select-Object -Skip 1 | Out-File -FilePath $tempMergedFile -Append -Encoding UTF8
+            Write-Host "Merged: $($coverageFile.Name)"
+            $mergedCount++
+        }
+        catch {
+            Write-Host "Error processing file $($coverageFile.Name): $($_.Exception.Message)"
         }
     }
 
-    if ((Test-Path $mergedCoverageFile) -and (Get-Item $mergedCoverageFile).Length -gt 0) {
-        foreach ($coverageFile in $coverageFiles) {
-            Remove-Item $coverageFile.FullName -Force
-        }
-        Write-Host "Merged coverage output created at $mergedCoverageFile"
-    } else {
-        Write-Host "Error: Merged coverage file is empty or missing"
+    if ($mergedCount -eq 0) {
+        Write-Host "Error: No valid coverage files were merged"
+        Remove-Item $tempMergedFile -Force -ErrorAction SilentlyContinue
         exit 1
     }
-} else {
-    Write-Host "No coverage files found in $coverageDir"
+
+    Move-Item $tempMergedFile $mergedCoverageFile -Force
+
+    foreach ($coverageFile in $coverageFiles) {
+        Remove-Item $coverageFile.FullName -Force -ErrorAction SilentlyContinue
+    }
+
+    Write-Host "Merged coverage output created at $mergedCoverageFile ($mergedCount files merged)"
+}
+catch {
+    Write-Host "Error during coverage merge: $($_.Exception.Message)"
+    Remove-Item $tempMergedFile -Force -ErrorAction SilentlyContinue
+    exit 1
 }
 
 if ($hasFailure) {
