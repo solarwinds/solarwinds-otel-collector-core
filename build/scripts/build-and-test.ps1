@@ -60,46 +60,33 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
     Pop-Location
 }
 
-# Merge coverage profiles for Codecov
+# Merge coverage profiles per OS for Codecov
 Write-Host "Starting coverage files merge process..."
 
-# Find coverage files but exclude the final output file
+# Find all coverage files except the final output file
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter "*.out" -File | Where-Object { $_.Name -ne "coverage.out" }
 
 if ($coverageFiles.Count -gt 0) {
-    # Remove any existing merged coverage file first
     $mergedCoverageFile = Join-Path $coverageDir "coverage.out"
-    if (Test-Path $mergedCoverageFile) {
-        Remove-Item $mergedCoverageFile -Force
-    }
-
     "mode: atomic" | Out-File -FilePath $mergedCoverageFile -Encoding UTF8
 
     foreach ($coverageFile in $coverageFiles) {
-        Write-Host "Processing coverage file: $($coverageFile.FullName)"
-
         if ((Test-Path $coverageFile.FullName) -and (Get-Item $coverageFile.FullName).Length -gt 0) {
             $content = Get-Content $coverageFile.FullName
             if ($content -and $content[0] -match "^mode:") {
                 $content | Select-Object -Skip 1 | Out-File -FilePath $mergedCoverageFile -Append -Encoding UTF8
-                Write-Host "Successfully merged: $($coverageFile.FullName)"
+                Write-Host "Merged: $($coverageFile.Name)"
             } else {
-                Write-Host "Warning: Skipping malformed coverage file: $($coverageFile.FullName)"
+                Write-Host "Warning: Skipping malformed coverage file: $($coverageFile.Name)"
             }
-        } else {
-            Write-Host "Warning: Skipping empty or missing coverage file: $($coverageFile.FullName)"
         }
     }
 
-    Write-Host "Merged coverage output created at $mergedCoverageFile"
-
-    # Verify the merged file
     if ((Test-Path $mergedCoverageFile) -and (Get-Item $mergedCoverageFile).Length -gt 0) {
-        # Clean up individual coverage files after successful merge
         foreach ($coverageFile in $coverageFiles) {
             Remove-Item $coverageFile.FullName -Force
         }
-        Write-Host "Cleanup completed - only coverage.out remains"
+        Write-Host "Merged coverage output created at $mergedCoverageFile"
     } else {
         Write-Host "Error: Merged coverage file is empty or missing"
         exit 1
