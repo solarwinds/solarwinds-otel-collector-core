@@ -66,40 +66,27 @@ done
 
 # Merge coverage profiles per OS for Codecov
 echo "Starting coverage files merge process..."
-# Find coverage files but exclude the final output file
+
+# Find all coverage files except the final output file
 COVERAGE_FILES=$(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" 2>/dev/null)
 
 if [[ -n "$COVERAGE_FILES" ]]; then
-    # Remove any existing merged coverage file first
-    rm -f "$COVERAGE_DIR/coverage.out"
-
     echo "mode: atomic" > "$COVERAGE_DIR/coverage.out"
 
-    while IFS= read -r -d '' coverage_file; do
-        echo "Processing coverage file: $coverage_file"
+    echo "$COVERAGE_FILES" | while read -r coverage_file; do
         if [[ -f "$coverage_file" && -s "$coverage_file" ]]; then
             if head -n 1 "$coverage_file" | grep -q "^mode:"; then
                 tail -n +2 "$coverage_file" >> "$COVERAGE_DIR/coverage.out"
-                echo "Successfully merged: $coverage_file"
+                echo "Merged: $(basename "$coverage_file")"
             else
-                echo "Warning: Skipping malformed coverage file: $coverage_file"
+                echo "Warning: Skipping malformed coverage file: $(basename "$coverage_file")"
             fi
-        else
-            echo "Warning: Skipping empty or missing coverage file: $coverage_file"
         fi
-    done < <(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" -print0 2>/dev/null)
+    done
 
-    echo "Merged coverage output created at $COVERAGE_DIR/coverage.out"
-
-    # Verify the merged file
     if [[ -f "$COVERAGE_DIR/coverage.out" && -s "$COVERAGE_DIR/coverage.out" ]]; then
-        # Clean up individual coverage files after successful merge
-        while IFS= read -r -d '' coverage_file; do
-            if [[ "$coverage_file" != "$COVERAGE_DIR/coverage.out" ]]; then
-                rm -f "$coverage_file"
-            fi
-        done < <(find "$COVERAGE_DIR" -name "*.out" -type f -print0 2>/dev/null)
-        echo "Cleanup completed - only coverage.out remains"
+        echo "$COVERAGE_FILES" | xargs rm -f
+        echo "Merged coverage output created at $COVERAGE_DIR/coverage.out"
     else
         echo "Error: Merged coverage file is empty or missing"
         exit 1
