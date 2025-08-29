@@ -39,7 +39,7 @@ govulncheck-modules: ## Check all Go modules for security vulnerabilities
 	@$(SCRIPT_DIR)/govulncheck-modules.sh
 
 .PHONY: install-all-go-packages
-install-all-go-packages: ## Install all required Go packages for development
+install-all-go-packages: ## Installs goversioninfo and vulncheck packages
 	$(call print-target)
 install-all-go-packages: install-goversioninfo
 install-all-go-packages: install-vulncheck
