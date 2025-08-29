@@ -4,10 +4,10 @@ ALL_SRC := $(shell find . \( -name "*.go" \) \
 	-type f | sort)
 
 .PHONY: ci-check-licenses
-ci-check-licenses: add-licenses check-licenses
+ci-check-licenses: add-licenses check-licenses ## CI task to add and check license headers
 
 .PHONY: add-licenses
-add-licenses: $(ADDLICENSE)
+add-licenses: $(ADDLICENSE) ## Add license headers to source files
 	@addLicensesOutput=`$(ADDLICENSE) -y "2025" -c "SolarWinds Worldwide, LLC. All rights reserved." -l "apache" \
 	    -v $(ALL_SRC) 2>&1`; \
 		if [ "$$addLicensesOutput" ]; then \
@@ -25,5 +25,5 @@ EXPECTED_GO_LICENSE_HEADER := $(if $(EXPECTED_GO_LICENSE_HEADER),$(EXPECTED_GO_L
 EXPECTED_SHELL_LICENSE_HEADER := $(if $(EXPECTED_SHELL_LICENSE_HEADER),$(EXPECTED_SHELL_LICENSE_HEADER),$(DEFAULT_SHELL_LICENSE_HEADER))
 
 .PHONY: check-licenses
-check-licenses:
+check-licenses: ## Check license headers in source files
 	@$(SCRIPT_DIR)/check-licenses.sh ${EXPECTED_GO_LICENSE_HEADER} ${EXPECTED_SHELL_LICENSE_HEADER}

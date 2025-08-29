@@ -2,54 +2,54 @@ govulncheck-version = v1.1.4
 goversioninfo-version = v1.5.0
 
 .PHONY: get-previous-tag
-get-previous-tag:
+get-previous-tag: ## Get the most recent git tag
 	@git tag --sort=version:refname | grep -P '^v\d+\.\d+\.\d+$$' | tail -n 1
 
 .PHONY: validate-release-uniqueness
-validate-release-uniqueness:
+validate-release-uniqueness: ## Validate that the release tag doesn't already exist on GitHub
 	if ! gh release view "$(tag)" 2>&1 | grep -q "^release not found$$"; then \
 		echo "Release $(tag) already exists on GitHub."; \
 		exit 1; \
 	fi
 
 .PHONY: prepare-release
-prepare-release:
+prepare-release: ## Prepare files for a new release
 	@$(SCRIPT_DIR)/prepare-release.sh $(version) "${PACKAGES_SOURCE_TO_UPDATE}"
 
 .PHONY: create-github-release
-create-github-release:
+create-github-release: ## Create a new GitHub release with generated notes
 	@gh release create $(current_tag) \
 		--title $(current_tag) \
 		--generate-notes \
 		--notes-start-tag $(previous_tag)
 
 .PHONY: tag-github-packages
-tag-github-packages:
+tag-github-packages: ## Tag packages for GitHub release
 	@$(SCRIPT_DIR)/tag-release-packages.sh "$(folders)" "$(tag)" "$(excluded_folders)"
 
 .PHONY: ci-vulncheck-modules
-ci-vulncheck-modules: install-all-go-packages
+ci-vulncheck-modules: install-all-go-packages ## CI task to check modules for vulnerabilities
 ci-vulncheck-modules:
 	$(MAKE) govulncheck-modules
 
 .PHONY: govulncheck-modules
-govulncheck-modules:
+govulncheck-modules: ## Check all Go modules for security vulnerabilities
 	$(call print-target)
 	@echo "Checking modules for vulnerabilities"
 	@$(SCRIPT_DIR)/govulncheck-modules.sh
 
 .PHONY: install-all-go-packages
-install-all-go-packages:
+install-all-go-packages: ## Installs goversioninfo and vulncheck packages
 	$(call print-target)
 install-all-go-packages: install-goversioninfo
 install-all-go-packages: install-vulncheck
 
 .PHONY: install-vulncheck
-install-vulncheck:
+install-vulncheck: ## Install the govulncheck security scanning tool
 	$(call print-target)
 	go install golang.org/x/vuln/cmd/govulncheck@$(govulncheck-version)
 
 .PHONY: install-goversioninfo
-install-goversioninfo:
+install-goversioninfo: ## Install the goversioninfo tool for embedding version info
 	$(call print-target)
 	cd ~ && GO111MODULE=on go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@$(goversioninfo-version) && cd - >/dev/null
