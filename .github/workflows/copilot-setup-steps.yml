@@ -47,10 +47,6 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Initialize submodules
-        run: |
-          git submodule update --init --checkout -- submodules/solarwinds-otel-collector-core
-
       - name: Install dependencies
         run: |
           find . -name 'go.mod' -execdir sh -c 'echo "Processing $(pwd)" && go mod download' \;
