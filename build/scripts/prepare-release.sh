@@ -30,12 +30,20 @@ PACKAGE_SOURCES_TO_UPDATE+=(
 # Update CHANGELOG.md
 CHANGELOG_FILE="$SRC_ROOT/CHANGELOG.md"
 if [ ! -f "$CHANGELOG_FILE" ]; then
-    echo "CHANGELOG.md not found!"
-    exit 1
+    echo "CHANGELOG.md not found!"; exit 1
 fi
 if ! grep -q "## v$VERSION" "$CHANGELOG_FILE"; then
-    perl -pi -e "s/^## vNext/## vNext\n\n## v$VERSION/" "$CHANGELOG_FILE"
-    echo "CHANGELOG.md updated with version v$VERSION"
+    # Capture current vNext block (lines after '## vNext' up to first blank line)
+    VNEXT_CONTENT=$(awk ' $0=="## vNext" {capture=1; next} capture && NF==0 {exit} capture {print} ' "$CHANGELOG_FILE")
+    if [ -z "$VNEXT_CONTENT" ]; then
+        # vNext was empty -> insert version section with placeholder
+        perl -pi -e "s/^## vNext/## vNext\n\n## v$VERSION\n- No changes/" "$CHANGELOG_FILE"
+        echo "CHANGELOG.md updated with version v$VERSION (placeholder added as vNext was empty)"
+    else
+        # vNext had content -> just create empty version section (content stays in vNext for future edits)
+        perl -pi -e "s/^## vNext/## vNext\n\n## v$VERSION/" "$CHANGELOG_FILE"
+        echo "CHANGELOG.md updated with version v$VERSION"
+    fi
 else
     echo "CHANGELOG.md already contains 'v$VERSION', no update made."
 fi
