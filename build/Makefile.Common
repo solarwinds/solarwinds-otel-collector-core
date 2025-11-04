@@ -25,14 +25,15 @@ install-mdatagen: ## Install mdatagen tool for generating component metadata
 	@if which mdatagen > /dev/null 2>&1; then \
 		echo "✓ mdatagen already installed"; \
 	else \
-		echo "Installing mdatagen v$(otel_version)..."; \
+		VERSION=$${MDATAGEN_VERSION:-latest}; \
+		echo "Installing mdatagen $$VERSION..."; \
 		TMP_DIR=$$(mktemp -d) && \
 		cd $$TMP_DIR && \
 		go mod init tempmod && \
-		go get -u go.opentelemetry.io/collector/cmd/mdatagen@v$(otel_version) && \
+		go get -u go.opentelemetry.io/collector/cmd/mdatagen@$$VERSION; \
 		go install go.opentelemetry.io/collector/cmd/mdatagen && \
 		rm -rf $$TMP_DIR && \
-		echo "✓ mdatagen v$(otel_version) installed successfully"; \
+		echo "✓ mdatagen $$VERSION installed successfully"; \
 	fi
 
 $(TOOLS_BIN_DIR):
