@@ -67,32 +67,32 @@ done
 echo "Starting coverage files merge process..."
 
 # Find all coverage files except the final output file
-# COVERAGE_FILES=$(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" 2>/dev/null)
+COVERAGE_FILES=$(find "$COVERAGE_DIR" -name "*.out" -type f ! -name "coverage.out" 2>/dev/null)
 
-# if [[ -n "$COVERAGE_FILES" ]]; then
-#     echo "mode: atomic" > "$COVERAGE_DIR/coverage.out"
+if [[ -n "$COVERAGE_FILES" ]]; then
+    echo "mode: atomic" > "$COVERAGE_DIR/coverage.out"
 
-#     echo "$COVERAGE_FILES" | while read -r coverage_file; do
-#         if [[ -f "$coverage_file" && -s "$coverage_file" ]]; then
-#             if head -n 1 "$coverage_file" | grep -q "^mode:"; then
-#                 tail -n +2 "$coverage_file" >> "$COVERAGE_DIR/coverage.out"
-#                 echo "Merged: $(basename "$coverage_file")"
-#             else
-#                 echo "Warning: Skipping malformed coverage file: $(basename "$coverage_file")"
-#             fi
-#         fi
-#     done
+    echo "$COVERAGE_FILES" | while read -r coverage_file; do
+        if [[ -f "$coverage_file" && -s "$coverage_file" ]]; then
+            if head -n 1 "$coverage_file" | grep -q "^mode:"; then
+                tail -n +2 "$coverage_file" >> "$COVERAGE_DIR/coverage.out"
+                echo "Merged: $(basename "$coverage_file")"
+            else
+                echo "Warning: Skipping malformed coverage file: $(basename "$coverage_file")"
+            fi
+        fi
+    done
 
-#     if [[ -f "$COVERAGE_DIR/coverage.out" && -s "$COVERAGE_DIR/coverage.out" ]]; then
-#         echo "$COVERAGE_FILES" | xargs rm -f
-#         echo "Merged coverage output created at $COVERAGE_DIR/coverage.out"
-#     else
-#         echo "Error: Merged coverage file is empty or missing"
-#         exit 1
-#     fi
-# else
-#     echo "No coverage files found in $COVERAGE_DIR"
-# fi
+    if [[ -f "$COVERAGE_DIR/coverage.out" && -s "$COVERAGE_DIR/coverage.out" ]]; then
+        echo "$COVERAGE_FILES" | xargs rm -f
+        echo "Merged coverage output created at $COVERAGE_DIR/coverage.out"
+    else
+        echo "Error: Merged coverage file is empty or missing"
+        exit 1
+    fi
+else
+    echo "No coverage files found in $COVERAGE_DIR"
+fi
 
 if [ "$HAS_FAILURE" = true ]; then
     echo "Some tests failed"
