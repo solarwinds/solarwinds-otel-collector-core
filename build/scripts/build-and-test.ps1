@@ -110,21 +110,22 @@ if ($coverageFiles.Count -gt 0) {
                     }
                     $outLines += $normalized
                 }
-                # merged silently
             } else {
                 Write-Host "Warning: Skipping malformed coverage file: $($cf.Name)"
-        try {
-            # Write all lines as UTF8 without BOM to avoid Codecov parser issues
-            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-            [System.IO.File]::WriteAllLines($mergedFile, $outLines, $utf8NoBom)
-
-            # Remove original fragment files
-            foreach ($cf in $coverageFiles) {
-                Remove-Item -Force -ErrorAction SilentlyContinue $cf.FullName
             }
-        } catch {
-            Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
-            $hasFailure = $true
+        } else {
+            Write-Host "Warning: Skipping empty coverage file: $($cf.Name)"
+        }
+    }
+
+    try {
+        # Write all lines as UTF8 without BOM to avoid Codecov parser issues
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllLines($mergedFile, $outLines, $utf8NoBom)
+
+        # Remove original fragment files
+        foreach ($cf in $coverageFiles) {
+            Remove-Item -Force -ErrorAction SilentlyContinue $cf.FullName
         }
     } catch {
         Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
