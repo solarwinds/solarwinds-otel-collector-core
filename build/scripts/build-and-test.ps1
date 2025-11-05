@@ -105,7 +105,7 @@ if ($coverageFiles.Count -gt 0) {
                     # Normalize Windows backslashes to forward slashes
                     $normalized = $ln -replace '\\','/'
                     # If the line contains the absolute repo path, strip it to make paths repo-relative
-                    if ($normalized.StartsWith($origDirPath -replace '\\','/')) {
+                    if ($normalized.StartsWith(($origDirPath -replace '\\','/'))) {
                         $normalized = $normalized.Substring(($origDirPath -replace '\\','/').Length).TrimStart('/','\\')
                     }
                     $outLines += $normalized
