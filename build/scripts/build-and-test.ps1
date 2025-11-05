@@ -80,7 +80,6 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
 }
 
 # Merge coverage profiles into single coverage.out for Codecov
-Write-Host "Starting coverage files merge process..."
 $mergedFile = Join-Path $coverageDir 'coverage.out'
 
 # Ensure old merged file is removed before starting
@@ -90,36 +89,45 @@ Remove-Item -Force -ErrorAction SilentlyContinue $mergedFile
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter '*.out' -File |
     Where-Object { $_.FullName -ne $mergedFile }
 
-Write-Host "Found $($coverageFiles.Count) coverage fragment files in $coverageDir"
 if ($coverageFiles.Count -gt 0) {
-    # Initialize merged file with coverage mode header
-    "mode: atomic" | Out-File -FilePath $mergedFile -Encoding utf8
+    # Build merged lines in memory to ensure we write UTF-8 without BOM
+    $outLines = @()
+    $outLines += 'mode: atomic'
 
     foreach ($cf in $coverageFiles) {
         if ($cf.Length -gt 0) {
-            $firstLine = Get-Content -Path $cf.FullName -TotalCount 1
-            if ($firstLine -match '^mode:') {
-                # Append all but first line (skip header)
-                (Get-Content -Path $cf.FullName | Select-Object -Skip 1) | Add-Content -Path $mergedFile
-                Write-Host "Merged: $($cf.Name)"
+            $lines = Get-Content -Path $cf.FullName
+            if ($lines.Count -gt 0 -and ($lines[0] -match '^mode:')) {
+                # Skip header line and normalize each coverage line
+                $body = $lines | Select-Object -Skip 1
+                foreach ($ln in $body) {
+                    if ([string]::IsNullOrWhiteSpace($ln)) { continue }
+                    # Normalize Windows backslashes to forward slashes
+                    $normalized = $ln -replace '\\','/'
+                    # If the line contains the absolute repo path, strip it to make paths repo-relative
+                    if ($normalized.StartsWith($origDirPath -replace '\\','/')) {
+                        $normalized = $normalized.Substring(($origDirPath -replace '\\','/').Length).TrimStart('/','\\')
+                    }
+                    $outLines += $normalized
+                }
+                # merged silently
             } else {
                 Write-Host "Warning: Skipping malformed coverage file: $($cf.Name)"
-            }
-        } else {
-            Write-Host "Warning: Skipping empty coverage file: $($cf.Name)"
-        }
-    }
+        try {
+            # Write all lines as UTF8 without BOM to avoid Codecov parser issues
+            $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+            [System.IO.File]::WriteAllLines($mergedFile, $outLines, $utf8NoBom)
 
-    # Validate merged file
-    if ((Test-Path $mergedFile) -and ((Get-Item $mergedFile).Length -gt 0)) {
-        # Remove original fragment files
-        foreach ($cf in $coverageFiles) {
-            Remove-Item -Force -ErrorAction SilentlyContinue $cf.FullName
+            # Remove original fragment files
+            foreach ($cf in $coverageFiles) {
+                Remove-Item -Force -ErrorAction SilentlyContinue $cf.FullName
+            }
+        } catch {
+            Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
+            $hasFailure = $true
         }
-        Write-Host "Merged coverage output created at $mergedFile"
-    } else
-        {
-        Write-Host "Error: Merged coverage file is empty or missing"
+    } catch {
+        Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
         $hasFailure = $true
     }
 } else {
