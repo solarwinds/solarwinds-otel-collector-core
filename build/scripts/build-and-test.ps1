@@ -29,6 +29,9 @@ New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
 Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
     Push-Location $_.Directory
 
+    # Keep the full path to the go.mod file for logging and naming
+    $modfile = $_.FullName
+
     $testFiles = Get-ChildItem -Recurse -Filter '*_test.go'
     if ($testFiles.Count -eq 0) {
 
@@ -39,15 +42,23 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
             return
         }
 
-        Write-Host "Processing build for module $($_.FullName)"
+        Write-Host "Processing build for module $modfile"
         go build .
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Build failed for module $modfile"
             $hasFailure = $true
         }
     } else {
-        Write-Host "Processing tests for module $($_.FullName)"
-        go test -v ./...
+        Write-Host "Processing tests for module $modfile"
+
+        # Build a safe module name based on the module path so we can produce
+        # a per-module coverage file similar to the Linux/Darwin script.
+        $modulePath = Split-Path -Parent $modfile
+        # Replace backslashes, forward slashes and dots with underscores
+        $moduleName = ($modulePath -replace '[\\/\.]','_')
+        $coverFile = Join-Path $coverageDir ($moduleName + '.out')
+
+        go test -v -coverprofile="$coverFile" -covermode=atomic ./...
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Test suite failed for module $modfile"
@@ -69,6 +80,7 @@ Remove-Item -Force -ErrorAction SilentlyContinue $mergedFile
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter '*.out' -File |
     Where-Object { $_.FullName -ne $mergedFile }
 
+Write-Host "Found $($coverageFiles.Count) coverage fragment files in $coverageDir"
 if ($coverageFiles.Count -gt 0) {
     # Initialize merged file with coverage mode header
     "mode: atomic" | Out-File -FilePath $mergedFile -Encoding utf8
@@ -102,6 +114,8 @@ if ($coverageFiles.Count -gt 0) {
     }
 } else {
     Write-Host "No coverage files found in $coverageDir"
+    # Print directory listing to aid CI debugging
+    Get-ChildItem -Path $coverageDir -Force | ForEach-Object { Write-Host " - $($_.Name) (Length=$($_.Length))" }
 }
 
 if ($hasFailure) {
