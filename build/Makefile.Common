@@ -18,6 +18,24 @@ TOOLS_BIN_NAMES := $(addprefix $(TOOLS_BIN_DIR)/, $(notdir $(shell echo $(TOOLS_
 .PHONY: install-tools
 install-tools: $(TOOLS_BIN_NAMES) ## Install development tools
 
+.PHONY: install-mdatagen
+install-mdatagen: ## Install mdatagen tool for generating component metadata
+	# This script is needed to circumvent this issue:
+	# https://github.com/open-telemetry/opentelemetry-collector/issues/9281
+	@if which mdatagen > /dev/null 2>&1; then \
+		echo "✓ mdatagen already installed"; \
+	else \
+		VERSION=$${MDATAGEN_VERSION:-latest}; \
+		echo "Installing mdatagen $$VERSION..."; \
+		TMP_DIR=$$(mktemp -d) && \
+		cd $$TMP_DIR && \
+		go mod init tempmod && \
+		go get -u go.opentelemetry.io/collector/cmd/mdatagen@$$VERSION; \
+		go install go.opentelemetry.io/collector/cmd/mdatagen && \
+		rm -rf $$TMP_DIR && \
+		echo "✓ mdatagen $$VERSION installed successfully"; \
+	fi
+
 $(TOOLS_BIN_DIR):
 	mkdir -p $@
 
