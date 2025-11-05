@@ -41,28 +41,31 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
             return
         }
 
-        Write-Host "Processing build for module $modPath"
+    Write-Host "Processing build for module $modPath"
         go build .
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Build failed for module $modPath"
             $hasFailure = $true
         }
     } else {
-        Write-Host "Processing tests for module $modPath"
-        # Sanitize module path for filename: replace separators and dots
-        $moduleName = ($_.Directory.FullName -replace '[\\/.]', '_')
+    Write-Host "Processing tests for module $modPath"
+        # Derive a relative module name safe for Windows filenames (remove drive colon)
+        $fullModulePath = $_.Directory.FullName
+        if ($fullModulePath.StartsWith($origDir, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $relativePart = $fullModulePath.Substring($origDir.Length)
+        } else {
+            $relativePart = $fullModulePath
+        }
+        $relativePart = $relativePart.TrimStart('\\')
+        if ([string]::IsNullOrWhiteSpace($relativePart)) { $relativePart = 'root' }
+        # Replace invalid/special chars (: \ / .) with underscore
+        $moduleName = ($relativePart -replace '[:\\/.]', '_')
         $coverFile = Join-Path $coverageDir "$moduleName.out"
-        go test -v -coverprofile "$coverFile" -covermode atomic ./...
+    go test -v -coverprofile "$coverFile" -covermode atomic ./...
 
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Test suite failed for module $modPath"
             $hasFailure = $true
-        } else {
-            if (Test-Path $coverFile) {
-                Write-Host "Generated coverage: $coverFile"
-            } else {
-                Write-Host "Warning: coverage file not created for $modPath"
-            }
         }
     }
 
@@ -82,21 +85,14 @@ if ($coverageFiles.Count -gt 0) {
             $firstLine = Get-Content -Path $cf.FullName -TotalCount 1
             if ($firstLine -match '^mode:') {
                 (Get-Content -Path $cf.FullName | Select-Object -Skip 1) | Add-Content -Path $mergedFile
-                Write-Host "Merged: $($cf.Name)"
-            } else {
-                Write-Host "Skipping malformed coverage file: $($cf.Name)"
             }
         }
     }
-
-    if ((Test-Path $mergedFile) -and ((Get-Item $mergedFile).Length -gt 0)) {
-        Write-Host "Merged coverage output created at $mergedFile"
-    } else {
-        Write-Host "Error: merged coverage file empty or missing"
+    if (-not ((Test-Path $mergedFile) -and ((Get-Item $mergedFile).Length -gt 0))) {
         $hasFailure = $true
     }
 } else {
-    Write-Host "No per-module coverage files found to merge in $coverageDir"
+    # Match linux script behavior (no extra message beyond initial line)
 }
 
 if ($hasFailure) {
@@ -104,10 +100,7 @@ if ($hasFailure) {
     exit 1
 }
 
-if (-not (Test-Path $mergedFile)) {
-    Write-Host "Final coverage file $mergedFile not found (tests may have been skipped)."
-    # still exit 0 to avoid blocking if intentionally no tests; adjust if strict needed
-}
+if (-not (Test-Path $mergedFile)) { }
 
 Write-Host "All tests passed"
 exit 0
