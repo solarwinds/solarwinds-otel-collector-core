@@ -8,8 +8,8 @@ SRC_ROOT := $(shell git rev-parse --show-toplevel)
 BUILD_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 SCRIPT_DIR := $(BUILD_DIR)/scripts
 
-TOOLS_MOD_DIR   := $(SRC_ROOT)/internal/tools
-TOOLS_BIN_DIR   := $(SRC_ROOT)/.tools
+TOOLS_MOD_DIR   ?= $(SRC_ROOT)/internal/tools
+TOOLS_BIN_DIR   ?= $(SRC_ROOT)/.tools
 TOOLS_MOD_REGEX := "\s+_\s+\".*\""
 TOOLS_GO := $(TOOLS_MOD_DIR)/tools.go
 TOOLS_PKG_NAMES := $(shell [ -f $(TOOLS_GO) ] && grep -E $(TOOLS_MOD_REGEX) < $(TOOLS_GO) | tr -d " _\"" | grep -vE '/v[0-9]+$$')
