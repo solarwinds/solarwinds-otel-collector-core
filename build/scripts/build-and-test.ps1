@@ -24,7 +24,7 @@ $hasFailure = $false
 $origDir = Get-Location
 $origDirPath = $origDir.Path
 $platform = "windows"
-$coverageDir = Join-Path $origDir "coverage" | Join-Path -ChildPath $platform
+$coverageDir = Join-Path $origDir "coverage" $platform
 New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
 
 Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
@@ -58,12 +58,10 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
         # Prefer a repository-relative path so the generated filename doesn't
         # contain a drive letter (which can introduce colons and break file
         # name handling). Trim the repo root from the module path if present.
-        if ($modulePath.StartsWith($origDirPath)) {
+        $relPath = $modulePath
+        if ($relPath.StartsWith($origDirPath)) {
             $relPath = $modulePath.Substring($origDirPath.Length).TrimStart('\','/')
-        } else {
-            $relPath = $modulePath
-        }
-        if ([string]::IsNullOrEmpty($relPath)) { $relPath = 'root' }
+        } 
         # Replace backslashes, forward slashes and dots with underscores
         $moduleName = ($relPath -replace '[\\/\.]','_')
         $coverFile = Join-Path $coverageDir ($moduleName + '.out')
@@ -129,7 +127,7 @@ if ($coverageFiles.Count -gt 0) {
         }
     } catch {
         Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
-        $hasFailure = $true
+        throw
     }
 } else {
     Write-Host "No coverage files found in $coverageDir"
