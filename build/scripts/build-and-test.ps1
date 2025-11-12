@@ -140,7 +140,10 @@ if ($hasFailure) {
     exit 1
 }
 
-if (-not (Test-Path $mergedFile)) { }
+if (-not (Test-Path $mergedFile)) {
+    Write-Error "Required file '$mergedFile' not found."
+    exit 1
+}
 
 Write-Host "All tests passed"
 exit 0
