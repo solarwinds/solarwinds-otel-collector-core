@@ -80,9 +80,6 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
 # Merge coverage profiles into single coverage.out for Codecov
 $mergedFile = Join-Path $coverageDir 'coverage.out'
 
-# Ensure old merged file is removed before starting
-Remove-Item -Force -ErrorAction Stop $mergedFile
-
 # Collect all coverage fragment files except the final merged file
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter '*.out' -File |
     Where-Object { $_.FullName -ne $mergedFile }
