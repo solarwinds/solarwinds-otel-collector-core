@@ -81,7 +81,7 @@ Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
 $mergedFile = Join-Path $coverageDir 'coverage.out'
 
 # Ensure old merged file is removed before starting
-Remove-Item -Force -ErrorAction SilentlyContinue $mergedFile
+Remove-Item -Force -ErrorAction Stop $mergedFile
 
 # Collect all coverage fragment files except the final merged file
 $coverageFiles = Get-ChildItem -Path $coverageDir -Filter '*.out' -File |
@@ -123,7 +123,7 @@ if ($coverageFiles.Count -gt 0) {
 
         # Remove original fragment files
         foreach ($cf in $coverageFiles) {
-            Remove-Item -Force -ErrorAction SilentlyContinue $cf.FullName
+            Remove-Item -Force -ErrorAction Stop $cf.FullName
         }
     } catch {
         Write-Host "Error writing merged coverage file: $($_.Exception.Message)"
