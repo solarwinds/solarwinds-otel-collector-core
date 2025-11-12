@@ -24,7 +24,7 @@ $hasFailure = $false
 $origDir = Get-Location
 $origDirPath = $origDir.Path
 $platform = "windows"
-$coverageDir = Join-Path $origDir "coverage" $platform
+$coverageDir = Join-Path $origDir "coverage" | Join-Path -ChildPath $platform
 New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
 
 Get-ChildItem -Recurse -Filter 'go.mod' | ForEach-Object {
