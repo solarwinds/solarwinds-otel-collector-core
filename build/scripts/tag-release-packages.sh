@@ -29,8 +29,8 @@ for folder in "${FOLDERS[@]}"; do
             done
         fi
         if [ -f "$package_folder/go.mod" ]; then
-            git tag "${package_folder#./}$VERSION_TAG"
-            git push origin "${package_folder#./}$VERSION_TAG"
+            # git tag "${package_folder#./}$VERSION_TAG"
+            # git push origin "${package_folder#./}$VERSION_TAG"
             echo "Pushed tag ${package_folder#./}$VERSION_TAG"
         fi
     done
