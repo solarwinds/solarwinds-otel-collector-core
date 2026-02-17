@@ -12,6 +12,20 @@ validate-release-uniqueness: ## Validate that the release tag doesn't already ex
 		exit 1; \
 	fi
 
+.PHONY: validate-tag-existence
+validate-tag-existence: ## Validate that the tag exists
+	@if ! git tag | grep -q "^$(tag)$$"; then \
+		echo "Tag $(tag) does not exist. Exiting."; \
+		exit 1; \
+	fi
+
+.PHONY: validate-tag-uniqueness
+validate-tag-uniqueness: ## Validate that the tag doesn't already exist
+	@if git tag | grep -q "^$(tag)$$"; then \
+		echo "Tag $(tag) already exists. Exiting."; \
+		exit 1; \
+	fi
+
 .PHONY: prepare-release
 prepare-release: ## Prepare files for a new release
 	@$(SCRIPT_DIR)/prepare-release.sh $(version) "${PACKAGES_SOURCE_TO_UPDATE}"
@@ -22,6 +36,13 @@ create-github-release: ## Create a new GitHub release with generated notes
 		--title $(current_tag) \
 		--generate-notes \
 		--notes-start-tag $(previous_tag)
+
+.PHONY: tag-repository
+tag-repository: ## Tags repository and packages with given tag
+	$(MAKE) validate-tag-uniqueness tag=$(tag)
+	@git tag "$(tag)"
+	@git push origin "$(tag)"
+	$(MAKE) tag-github-packages folders=$(folders) tag=$(tag) excluded_folders=$(excluded_folders)
 
 .PHONY: tag-github-packages
 tag-github-packages: ## Tag packages for GitHub release
