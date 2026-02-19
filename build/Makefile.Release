@@ -39,10 +39,10 @@ create-github-release: ## Create a new GitHub release with generated notes
 
 .PHONY: tag-repository
 tag-repository: ## Tags repository and packages with given tag
-	$(MAKE) validate-tag-uniqueness tag=$(tag)
+	$(MAKE) validate-tag-uniqueness tag="$(tag)"
 	@git tag "$(tag)"
 	@git push origin "$(tag)"
-	$(MAKE) tag-github-packages folders=$(folders) tag=$(tag) excluded_folders=$(excluded_folders)
+	$(MAKE) tag-github-packages folders="$(folders)" tag="$(tag)" excluded_folders="$(excluded_folders)"
 
 .PHONY: tag-github-packages
 tag-github-packages: ## Tag packages for GitHub release
