@@ -8,7 +8,7 @@ ci-check-licenses: add-licenses check-licenses ## CI task to add and check licen
 
 .PHONY: add-licenses
 add-licenses: $(ADDLICENSE) ## Add license headers to source files
-	@addLicensesOutput=`$(ADDLICENSE) -y "2025" -c "SolarWinds Worldwide, LLC. All rights reserved." -l "apache" \
+	@addLicensesOutput=`$(ADDLICENSE) -y "2026" -c "SolarWinds Worldwide, LLC. All rights reserved." -l "apache" \
 	    -v $(ALL_SRC) 2>&1`; \
 		if [ "$$addLicensesOutput" ]; then \
 			echo "Files modified:"; \
