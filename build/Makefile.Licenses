@@ -30,7 +30,7 @@ add-licenses: $(ADDLICENSE) ## Add/update license headers on PR-changed source f
 	else \
 		echo "Updating license headers on changed files:"; \
 		echo "$(CHANGED_FILES)"; \
-		sed -i "1,$(HEADER_LINES)s/Copyright \(SolarWinds Worldwide, LLC\) [0-9]\{4\}-\{0,1\}[0-9]*/Copyright \1 $(LICENSE_YEAR)/" $(CHANGED_FILES); \
+		sed -i "1,$(HEADER_LINES)s/Copyright [0-9]\{4\}\(-[0-9]\{4\}\)\{0,1\} SolarWinds Worldwide, LLC/Copyright $(LICENSE_YEAR) SolarWinds Worldwide, LLC/" $(CHANGED_FILES); \
 		$(ADDLICENSE) -y "$(LICENSE_YEAR)" -c "SolarWinds Worldwide, LLC. All rights reserved." -l "apache" $(CHANGED_FILES); \
 	fi
 
