@@ -19,5 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Check licenses
-        run: make ci-check-licenses
+        run: |
+          export LICENSE_YEAR=$(date +%Y)
+          make ci-check-licenses
