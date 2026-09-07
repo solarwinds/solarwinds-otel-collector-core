@@ -32,8 +32,14 @@ if [ -z "$BASE_REF" ]; then
     exit 0
 fi
 
+# WHY: shallow CI checkouts may lack the base branch; try to fetch it before
+# giving up, otherwise strict mode would be silently disabled for the PR.
 if ! git rev-parse --verify "origin/${BASE_REF}" > /dev/null 2>&1; then
-    echo "WARNING: origin/${BASE_REF} does not exist locally; falling back to empty changed set." >&2
+    git fetch --quiet origin "${BASE_REF}:refs/remotes/origin/${BASE_REF}" 2>/dev/null || true
+fi
+
+if ! git rev-parse --verify "origin/${BASE_REF}" > /dev/null 2>&1; then
+    echo "WARNING: origin/${BASE_REF} does not exist locally and could not be fetched; falling back to empty changed set." >&2
     exit 0
 fi
 
