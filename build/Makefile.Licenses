@@ -36,5 +36,5 @@ add-licenses: $(ADDLICENSE) ## Add/update license headers on PR-changed source f
 	fi
 
 .PHONY: check-licenses
-check-licenses: ## Check license headers in source files
+check-licenses: $(ADDLICENSE) ## Check license headers in source files
 	@LICENSE_YEAR=$(LICENSE_YEAR) ADDLICENSE=$(ADDLICENSE) $(SCRIPT_DIR)/check-licenses.sh $(EXPECTED_GO_LICENSE_HEADER) $(EXPECTED_SHELL_LICENSE_HEADER)
