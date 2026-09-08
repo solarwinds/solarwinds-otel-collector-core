@@ -15,22 +15,23 @@ DEFAULT_SHELL_LICENSE_HEADER := $(SCRIPT_DIR)/expected-shell-file-header.txt
 EXPECTED_GO_LICENSE_HEADER    := $(if $(EXPECTED_GO_LICENSE_HEADER),$(EXPECTED_GO_LICENSE_HEADER),$(DEFAULT_GO_LICENSE_HEADER))
 EXPECTED_SHELL_LICENSE_HEADER := $(if $(EXPECTED_SHELL_LICENSE_HEADER),$(EXPECTED_SHELL_LICENSE_HEADER),$(DEFAULT_SHELL_LICENSE_HEADER))
 
-# WHY: ci-check-licenses runs add-licenses first so check-licenses sees the
-# expected state. If add-licenses modifies any file, detect-vcs-changes will
-# catch the uncommitted change and fail the build — the developer must run
-# `make add-licenses` locally and commit before pushing.
+# WHY: CI must only verify, never mutate. Running add-licenses in CI would
+# rewrite stale years in the checkout and let check-licenses pass on content
+# that is not what the PR actually contains. Developers repair locally with
+# `make add-licenses` and commit the result.
 .PHONY: ci-check-licenses
-ci-check-licenses: add-licenses check-licenses ## CI task to add and check license headers
+ci-check-licenses: check-licenses ## CI task to check license headers on source files
 
 .PHONY: add-licenses
-add-licenses: $(ADDLICENSE) ## Add/update license headers on PR-changed source files only
+add-licenses: $(ADDLICENSE) ## Add/update license headers on PR-changed source files only (local use)
 	$(eval CHANGED_FILES := $(shell $(SCRIPT_DIR)/get-changed-license-files.sh))
 	@if [ -z "$(CHANGED_FILES)" ]; then \
 		echo "No changed source files detected; add-licenses is a no-op."; \
 	else \
 		echo "Updating license headers on changed files:"; \
 		echo "$(CHANGED_FILES)"; \
-		sed -i "1,$(HEADER_LINES)s/Copyright [0-9]\{4\}\(-[0-9]\{4\}\)\{0,1\} SolarWinds Worldwide, LLC/Copyright $(LICENSE_YEAR) SolarWinds Worldwide, LLC/" $(CHANGED_FILES); \
+		sed -i.license-bak "1,$(HEADER_LINES)s/Copyright [0-9]\{4\}\(-[0-9]\{4\}\)\{0,1\} SolarWinds Worldwide, LLC/Copyright $(LICENSE_YEAR) SolarWinds Worldwide, LLC/" $(CHANGED_FILES); \
+		rm -f $(addsuffix .license-bak,$(CHANGED_FILES)); \
 		$(ADDLICENSE) -y "$(LICENSE_YEAR)" -c "SolarWinds Worldwide, LLC. All rights reserved." -l "apache" $(CHANGED_FILES); \
 	fi
 

@@ -65,16 +65,26 @@ strict_check_go() {
     return 0
 }
 
+header_start_line() {
+    local f="$1"
+    # Skip shebang line when present so it does not shift the header comparison.
+    if head -n 1 "$f" | grep -q '^#!'; then
+        echo 2
+    else
+        echo 1
+    fi
+}
+
 strict_check_sh() {
     local f="$1"
     local rendered_template="$2"
-    local header_lines
+    local header_lines start
     header_lines=$(wc -l < "$rendered_template")
-    # Skip shebang line when present so it does not shift the header comparison.
-    if ! diff -q <(tail -n +2 "$f" | head -n "$header_lines") "$rendered_template" > /dev/null; then
+    start=$(header_start_line "$f")
+    if ! diff -q <(tail -n +"$start" "$f" | head -n "$header_lines") "$rendered_template" > /dev/null; then
         echo "Missing or incorrect license header in shell file!"
         echo "Diff for ${f#$(pwd)/}:"
-        diff --label="${f#$(pwd)/}" -u <(tail -n +2 "$f" | head -n "$header_lines") "$rendered_template"
+        diff --label="${f#$(pwd)/}" -u <(tail -n +"$start" "$f" | head -n "$header_lines") "$rendered_template"
         return 1
     fi
     return 0
